@@ -1,65 +1,82 @@
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.json.JSONObject;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.xml.sax.Attributes;
+import org.xml.sax.helpers.DefaultHandler;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 public class XmlToJsonConverter {
-  public static void main(String[] args) throws Exception {
-    // Create a new Scanner to read user input
-    Scanner scanner = new Scanner(System.in);
+    public static void main(String[] args) throws Exception {
+        // Create a new Scanner to read user input
+        Scanner scanner = new Scanner(System.in);
 
-    // Ask the user for the names of the fields they want to print
-    System.out.println("Enter the names of the fields you want to print, separated by commas:");
-    String[] fieldNames = scanner.nextLine().split(",");
+        // Ask the user for the names of the fields they want to print
+        System.out.println("Enter the names of the fields you want to print, separated by commas:");
+        String[] fieldNames = scanner.nextLine().split(",");
 
-    // Create a new ArrayList to hold the validated field names
-    ArrayList<String> validFieldNames = new ArrayList<>();
+        // Create a new ArrayList to hold the validated field names
+        ArrayList<String> validFieldNames = new ArrayList<>();
 
-    // Validate the user's input
-    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder = factory.newDocumentBuilder();
-    Document doc = builder.parse("data.xml");
-    Element root = doc.getDocumentElement();
+        // Validate the user's input
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        SAXParser saxParser = factory.newSAXParser();
 
-    for (String fieldName : fieldNames) {
-      String trimmedFieldName = fieldName.trim();
-      NodeList nodes = root.getElementsByTagName(trimmedFieldName);
-      if (nodes.getLength() == 0) {
-        System.out.println("Error: " + trimmedFieldName + " is not a valid field name");
-      } else {
-        validFieldNames.add(trimmedFieldName);
-      }
-    }
+        DefaultHandler handler = new DefaultHandler() {
+            boolean isCurrentNodeValid = false;
+            String currentElementName = "";
+            JSONObject json = new JSONObject();
 
-    // If there are no valid field names, exit the program
-    if (validFieldNames.isEmpty()) {
-      System.out.println("No valid field names provided. Exiting program.");
-      System.exit(0);
-    }
+            public void startElement(String uri, String localName,String qName,
+                                     Attributes attributes) {
+                if (isFieldNameValid(qName)) {
+                    isCurrentNodeValid = true;
+                    currentElementName = qName;
+                }
+            }
 
-    // Loop through the child nodes of the root element and build the JSONObject
-    JSONObject json = new JSONObject();
-    NodeList nodes = root.getChildNodes();
+            public void endElement(String uri, String localName,
+                                   String qName) {
+                if (isFieldNameValid(qName)) {
+                    isCurrentNodeValid = false;
+                    currentElementName = "";
+                }
+            }
 
-    for (int i = 0; i < nodes.getLength(); i++) {
-      Element node = (Element) nodes.item(i);
+            public void characters(char ch[], int start, int length) {
+                if (isCurrentNodeValid) {
+                    String fieldValue = new String(ch, start, length);
+                    json.put(currentElementName, fieldValue);
+                }
+            }
 
-      for (String fieldName : validFieldNames) {
-        NodeList fieldNodes = node.getElementsByTagName(fieldName);
-        if (fieldNodes.getLength() > 0) {
-          String fieldValue = fieldNodes.item(0).getTextContent();
-          json.put(fieldName, fieldValue);
+            private boolean isFieldNameValid(String fieldName) {
+                String trimmedFieldName = fieldName.trim();
+                for (String validFieldName : validFieldNames) {
+                    if (validFieldName.equals(trimmedFieldName)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        };
+
+        // Add valid field names to the list of validated field names
+        for (String fieldName : fieldNames) {
+            String trimmedFieldName = fieldName.trim();
+            validFieldNames.add(trimmedFieldName);
         }
-      }
+
+        // If there are no valid field names, exit the program
+        if (validFieldNames.isEmpty()) {
+            System.out.println("No valid field names provided. Exiting program.");
+            System.exit(0);
+        }
+
+        // Parse the input XML file using the SAX parser and the custom handler
+        saxParser.parse("data.xml", handler);
+
+        // Print the JSONObject to the console in JSON format
+        System.out.println(handler.json.toString());
     }
-
-    // Print the JSONObject to the console in JSON format
-    System.out.println(json.toString());
-  }
 }
-
-
