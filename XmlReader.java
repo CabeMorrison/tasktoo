@@ -4,6 +4,7 @@ import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class XmlToJsonConverter {
@@ -15,35 +16,43 @@ public class XmlToJsonConverter {
     System.out.println("Enter the names of the fields you want to print, separated by commas:");
     String[] fieldNames = scanner.nextLine().split(",");
 
-    // Create a new DocumentBuilderFactory
+    // Create a new ArrayList to hold the validated field names
+    ArrayList<String> validFieldNames = new ArrayList<>();
+
+    // Validate the user's input
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
-    // Use the factory to create a new DocumentBuilder
     DocumentBuilder builder = factory.newDocumentBuilder();
-
-    // Load the input XML document, parse it and return a new Document object
     Document doc = builder.parse("data.xml");
-
-    // Get the root element of the document
     Element root = doc.getDocumentElement();
 
-    // Get all child nodes of the root element
+    for (String fieldName : fieldNames) {
+      String trimmedFieldName = fieldName.trim();
+      NodeList nodes = root.getElementsByTagName(trimmedFieldName);
+      if (nodes.getLength() == 0) {
+        System.out.println("Error: " + trimmedFieldName + " is not a valid field name");
+      } else {
+        validFieldNames.add(trimmedFieldName);
+      }
+    }
+
+    // If there are no valid field names, exit the program
+    if (validFieldNames.isEmpty()) {
+      System.out.println("No valid field names provided. Exiting program.");
+      System.exit(0);
+    }
+
+    // Loop through the child nodes of the root element and build the JSONObject
+    JSONObject json = new JSONObject();
     NodeList nodes = root.getChildNodes();
 
-    // Create a new JSONObject to hold the field values
-    JSONObject json = new JSONObject();
-
-    // Loop through the child nodes
     for (int i = 0; i < nodes.getLength(); i++) {
-      // Get the current node
       Element node = (Element) nodes.item(i);
 
-      // Loop through the field names provided by the user
-      for (String fieldName : fieldNames) {
-        // Get the value of the current field if it matches the user's selection
-        if (node.getElementsByTagName(fieldName.trim()).getLength() > 0) {
-          String fieldValue = node.getElementsByTagName(fieldName.trim()).item(0).getTextContent();
-          json.put(fieldName.trim(), fieldValue);
+      for (String fieldName : validFieldNames) {
+        NodeList fieldNodes = node.getElementsByTagName(fieldName);
+        if (fieldNodes.getLength() > 0) {
+          String fieldValue = fieldNodes.item(0).getTextContent();
+          json.put(fieldName, fieldValue);
         }
       }
     }
