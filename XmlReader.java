@@ -1,11 +1,12 @@
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import java.util.Scanner;
 
-public class XmlReader {
+public class XmlToJsonConverter {
   public static void main(String[] args) throws Exception {
     // Create a new Scanner to read user input
     Scanner scanner = new Scanner(System.in);
@@ -29,6 +30,9 @@ public class XmlReader {
     // Get all child nodes of the root element
     NodeList nodes = root.getChildNodes();
 
+    // Create a new JSONObject to hold the field values
+    JSONObject json = new JSONObject();
+
     // Loop through the child nodes
     for (int i = 0; i < nodes.getLength(); i++) {
       // Get the current node
@@ -36,12 +40,17 @@ public class XmlReader {
 
       // Loop through the field names provided by the user
       for (String fieldName : fieldNames) {
-        // Print the value of the current field if it matches the user's selection
+        // Get the value of the current field if it matches the user's selection
         if (node.getElementsByTagName(fieldName.trim()).getLength() > 0) {
-          System.out.println(fieldName.trim() + ": " + node.getElementsByTagName(fieldName.trim()).item(0).getTextContent());
+          String fieldValue = node.getElementsByTagName(fieldName.trim()).item(0).getTextContent();
+          json.put(fieldName.trim(), fieldValue);
         }
       }
     }
+
+    // Print the JSONObject to the console in JSON format
+    System.out.println(json.toString());
   }
 }
+
 
