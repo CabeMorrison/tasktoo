@@ -1,42 +1,47 @@
-import java.io.File;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-import org.xml.sax.Attributes;
-import org.xml.sax.helpers.DefaultHandler;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import java.util.Scanner;
 
 public class XmlReader {
   public static void main(String[] args) throws Exception {
-    // Create a new SAXParserFactory
-    SAXParserFactory factory = SAXParserFactory.newInstance();
+    // Create a new Scanner to read user input
+    Scanner scanner = new Scanner(System.in);
 
-    // Use the factory to create a new SAXParser
-    SAXParser parser = factory.newSAXParser();
+    // Ask the user for the names of the fields they want to print
+    System.out.println("Enter the names of the fields you want to print, separated by commas:");
+    String[] fieldNames = scanner.nextLine().split(",");
 
-    // Parse the input XML file using a custom DefaultHandler
-    parser.parse(new File("data.xml"), new DefaultHandler() {
-      private boolean isField = false;
+    // Create a new DocumentBuilderFactory
+    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
-      // Called when the parser encounters a start tag
-      public void startElement(String uri, String localName, String qName, Attributes attributes) {
-        if (qName.equals("field")) {
-          isField = true;
+    // Use the factory to create a new DocumentBuilder
+    DocumentBuilder builder = factory.newDocumentBuilder();
+
+    // Load the input XML document, parse it and return a new Document object
+    Document doc = builder.parse("data.xml");
+
+    // Get the root element of the document
+    Element root = doc.getDocumentElement();
+
+    // Get all child nodes of the root element
+    NodeList nodes = root.getChildNodes();
+
+    // Loop through the child nodes
+    for (int i = 0; i < nodes.getLength(); i++) {
+      // Get the current node
+      Element node = (Element) nodes.item(i);
+
+      // Loop through the field names provided by the user
+      for (String fieldName : fieldNames) {
+        // Print the value of the current field if it matches the user's selection
+        if (node.getElementsByTagName(fieldName.trim()).getLength() > 0) {
+          System.out.println(fieldName.trim() + ": " + node.getElementsByTagName(fieldName.trim()).item(0).getTextContent());
         }
       }
-
-      // Called when the parser encounters an end tag
-      public void endElement(String uri, String localName, String qName) {
-        if (qName.equals("field")) {
-          isField = false;
-        }
-      }
-
-      // Called when the parser encounters character data
-      public void characters(char[] ch, int start, int length) {
-        if (isField) {
-          String value = new String(ch, start, length);
-          System.out.println(value);
-        }
-      }
-    });
+    }
   }
 }
+
